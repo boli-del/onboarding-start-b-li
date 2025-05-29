@@ -11,53 +11,88 @@ module spi_peripheral (
     output reg  [7:0] en_reg_pwm_7_0;
     output reg  [7:0] en_reg_pwm_15_8;
     output reg  [7:0] pwm_duty_cycle;
-    output reg message;
-    output reg bit_cnt;
+    output reg message[15:0];
+    output reg bit_cnt[4:0];
     output reg text_received = 0;
     output reg text_processed = 0;
+
+    wire pos_sclk = ~ncs_sync2 & ncs_sync1;
     reg ncs_sync1, ncs_sync2;
+    reg copi_sync1, copi_sync2;
+    wire pos_sclk = ~sclk_sync2 & sclk_sync1;
+
+
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            //clear the text received
+            //clear the text received for everything, including register
             text_received<= 0;
             ncs_sync1 <= 1'b1;
             ncs_sync2 <= 1'b1;
+            copi_sync1 <= 1'b0, copi_sync2 <= 1'b0;
+            en_reg_out_7_0 <= 0;
+            en_reg_out_15_8 <= 0;
+            en_reg_pwm_15_8 <= 0;
+            en_reg_pwm_7_0 <= 0;
         end
         else begin
-            ncs_sync1 <= ncs;
-            ncs_sync2 <= ncs_sync1;
-        end
-        else if (ncs_sync2 == 1'b0) begin
-            if (posedge sclk) begin
-                //shift the message
-                message <= {message[14:0], copi}
-                //increment the bit count
-                bit_cnt <= bit_cnt + 1;
+                ncs_sync1 <= ncs;
+                ncs_sync2 <= ncs_sync1;
+                copi_sync1 <= copi;
+                copi_sync2 <= copi_sync1;
+                    
+            if (ncs_sync2 == 1'b0) begin
+                if (pos_sclk && bit_cnt != 16) begin 
+                    //shift the message
+                    message <= {message[14:0], copi_sync2}
+                    //increment the bit count
+                    bit_cnt <= bit_cnt + 1;
+                end
             end
-        end
-        and else begin 
-            if (ncs_sync2 == 1'b1) begin
-                //set the text received after the falling edge of the ncs which signals the end of the message
-                text_received <= 1'b1;
-            end else if (text_processed == 1'b1) begin
-                //clear the text received since it is processed
-                text_received <= 1'b0;
+            and else begin 
+                if (bit_cnt == 16) begin //negedge is going to be ncs_sync2 = 1, ncs_sync = 0
+                    //set the text received after the falling edge of the ncs which signals the end of the message
+                    text_received <= 1'b1;
+                end else if (text_processed == 1'b1) begin
+                    //clear the text received since it is processed
+                    text_received <= 1'b0;
+                end
             end
+
+
+            always @(posedge clk or negedge rst_n) begin
+                if (!rst_n) begin 
+                    //clear the text processed
+                    text_processed <= 1'b0;
+                    
+                
+                end else if (text_received == 1'b1 && text_processed == 1'b0) begin
+                    //process the text only if the text is received and not processed
+                    wire write_flag = shift_reg[15];
+                    wire [6:0] addr = shift_reg[14:8];
+                    wire [7:0] data = shift_reg[7:0];
+                    if (write_flag) begin
+                        if (addr < 5) begin
+                            case (addr)
+                                7'h00: en_reg_out_7_0 <= data;  // shift left, LSB <- data_in
+                                7'h01: en_reg_out_15_8 <= data;
+                                7'h02: en_reg_pwm_7_0 <= data;
+                                7'h03: en_reg_pwm_15_8 <= data;
+                                7'h04: pwm_duty_cycle <= data;
+                            endcase
+                        end
+                    end
+                    text_processed <= 1'b1;
+                end else if (text_processed == 1'b1) begin
+                    //clear the text processed after it is processed
+                    text_processed <= 1'b0;
+                end
+
+            end
+
         end
+
     end
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin 
-            //clear the text processed
-            text_processed <= 1'b0;
         
-        end else if (text_received == 1'b1 && text_processed == 1'b0) begin
-            //process the text only if the text is received and not processed
-            text_processed <= 1'b1;
-        end else if (text_processed == 1'b1) begin
-            //clear the text processed after it is processed
-            text_processed <= 1'b0;
-        end
-    end
 );
 endmodule
 
