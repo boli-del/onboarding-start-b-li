@@ -152,10 +152,125 @@ async def test_spi(dut):
 @cocotb.test()
 async def test_pwm_freq(dut):
     # Write your test here
+    dut._log.info("Start Frequency test")
+    clock = Clock(dut.clk, 100, units="ns")
+    cocotb.start_soon(clock.start())
+
+    dut._log.info("Reset")
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 5) #waiting for stable state
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 5) #waiting for stable state
+    time_out = 100000 #for handling timeout errors
+    time_cyclec_count = 0
+    #50% duty cycle
+    dut._log.info("Testing at 50 percent duty cycle")
+    dut._log.info("Write transaction, address 0x00, data 0x01")
+    ui_in_val = await send_spi_transaction(dut, 1, 0x00, 0x01)  # Write transaction
+    await send_spi_transaction(dut, 1, 0x02, 0x01)  # Enable PWM for output 0
+    await send_spi_transaction(dut, 1, 0x04, 0x80)  #set 50% duty cycle
+    await ClockCycles(dut.clk, 10000) #waiting for stable state
+    rising_edges = []
+    falling_edges = []
+    while dut.uio_out[0].value == 0:
+        await ClockCycles(dut.clk, 1)
+        time_cyclec_count += 1
+        if time_cyclec_count > time_out:
+            raise TimeoutError("Time out waiting for rising edge")
+    time_cyclec_count = 0
+    rising_edges.append(cocotb.utils.get_sim_time(units="ns"))
+    while dut.uio_out[0].value == 1:
+        await ClockCycles(dut.clk, 1)
+        time_cyclec_count += 1
+        if time_cyclec_count > time_out:
+            raise TimeoutError("Time out waiting for falling edge")
+    time_cyclec_count = 0
+    falling_edges.append(cocotb.utils.get_sim_time(units="ns"))
+    while dut.uio_out[0].value == 0:
+        await ClockCycles(dut.clk, 1)
+        time_cyclec_count += 1
+        if time_cyclec_count > time_out:
+            raise TimeoutError("Time out waiting for rising edge")
+    time_cyclec_count = 0
+    rising_edges.append(cocotb.utils.get_sim_time(units="ns"))
+
+    period = rising_edges[1] - rising_edges[0]
+    frequency = 1 / period
+    dut._log.info(f"Period: {period} ns, Frequency: {frequency} Hz")
+    assert frequency <= 3030 and frequency >= 2970, f"Expected frequency to be 3000 Hz, got {frequency} Hz"
+
     dut._log.info("PWM Frequency test completed successfully")
 
 
 @cocotb.test()
 async def test_pwm_duty(dut):
-    # Write your test here
+    dut._log.info("Start PWM Duty Cycle test")
+    clock = Clock(dut.clk, 100, units="ns")
+    cocotb.start_soon(clock.start())
+
+    dut._log.info("Reset")
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 5) #waiting for stable state
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 5) #waiting for stable state
+
+    #50% duty cycle
+    dut._log.info("Testing 50% duty cycle")
+    dut._log.info("Write transaction, address 0x00, data 0x01")
+    ui_in_val = await send_spi_transaction(dut, 1, 0x00, 0x01)  # Write transaction
+    await send_spi_transaction(dut, 1, 0x02, 0x01)  # Enable PWM for output 0
+    await send_spi_transaction(dut, 1, 0x04, 0x80)  #set 50% duty cycle
+    await ClockCycles(dut.clk, 10000) #waiting for stable state
+    rising_edges = []
+    falling_edges = []
+    time_out = 100000 #for handling timeout errors
+    time_cyclec_count = 0
+
+    #detect rising and falling edges
+    while dut.uio_out[0].value == 0: 
+        await ClockCycles(dut.clk, 1)
+        time_cyclec_count += 1
+        if time_cyclec_count > time_out:
+            raise TimeoutError("Time out waiting for rising edge")
+    time_cyclec_count = 0
+    rising_edges.append(cocotb.utils.get_sim_time(units="ns"))
+    while dut.uio_out[0].value == 1:
+        await ClockCycles(dut.clk, 1)
+        time_cyclec_count += 1
+        if time_cyclec_count > time_out:
+            raise TimeoutError("Time out waiting for falling edge")
+    time_cyclec_count = 0
+    falling_edges.append(cocotb.utils.get_sim_time(units="ns"))
+    while dut.uio_out[0].value == 0:
+        await ClockCycles(dut.clk, 1)
+        time_cyclec_count += 1
+        if time_cyclec_count > time_out:
+            raise TimeoutError("Time out waiting for rising edge")
+    time_cyclec_count = 0
+    rising_edges.append(cocotb.utils.get_sim_time(units="ns"))
+    
+    #calculate period, hightimes, and frequency
+    period = rising_edges[1] - rising_edges[0]
+    high_time = falling_edges[0]-rising_edges[0]
+    duty_cycle = (high_time/period)*100
+    dut._log.info(f"Period: {period} ns, High time: {high_time} ns, Duty Cycle: {duty_cycle}%")
+    assert high_time <= 55 and high_time >= 45, f"Expected duty cycle to be 50 %, got {high_time} %"
+    dut._log.info("50 percent duty cycle passed successfully")
+
+    #handling edge_case of 0 percent
+    dut._log.info("Testing 0 percent duty cycle")
+    dut._log.info("Write transaction, address 0x04, data 0x00")
+    ui_in_val = await send_spi_transaction(dut, 1, 0x04, 0x00)  # Write transaction
+    await ClockCycles(dut.clk, 10000)
+    assert dut.uio_out[0].value == 0, f"Expected 0% duty cycle, got {dut.uio_out[0].value}"
+    dut._log.info("0 percent duty cycle passed successfully")
+
+    #handling edge_case of 100 percent
+    dut._log.info("Testing 100 percent duty cycle")
+    dut._log.info("Write transaction, address 0x00, data 0x02")
+    ui_in_val = await send_spi_transaction(dut, 1, 0x00, 0xFF)  # Write transaction
+    await ClockCycles(dut.clk, 1000)
+    assert dut.uio_out[0].value == 1, f"Expected 100% duty cycle, got {dut.uio_out[0].value}"
+    dut._log.info("100 percent duty cycle passed successfully")
+
     dut._log.info("PWM Duty Cycle test completed successfully")
