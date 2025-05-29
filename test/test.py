@@ -178,11 +178,11 @@ async def test_pwm_freq(dut):
     await ClockCycles(dut.clk, 10000) #waiting for stable state
     rising_edges = []
     falling_edges = []
-    await with_timeout(RisingEdge(dut.uio_out[0]), 10000, 'us')
+    await with_timeout(RisingEdge(dut.uio_out), 10000, 'us')
     rising_edges.append(cocotb.utils.get_sim_time(units="ns"))
-    await with_timeout(FallingEdge(dut.uio_out[0]), 10000, 'us')
+    await with_timeout(FallingEdge(dut.uio_out), 10000, 'us')
     falling_edges.append(cocotb.utils.get_sim_time(units="ns"))
-    await with_timeout(RisingEdge(dut.uio_out[0]), 10000, 'us')
+    await with_timeout(RisingEdge(dut.uio_out), 10000, 'us')
     rising_edges.append(cocotb.utils.get_sim_time(units="ns"))
 
     period = rising_edges[1] - rising_edges[0]
@@ -223,21 +223,21 @@ async def test_pwm_duty(dut):
     time_cyclec_count = 0
 
     #detect rising and falling edges
-    while dut.uio_out[0].value == 0: 
+    while dut.uio_out.value == 0: 
         await ClockCycles(dut.clk, 1)
         time_cyclec_count += 1
         if time_cyclec_count > time_out:
             raise TimeoutError("Time out waiting for rising edge")
     time_cyclec_count = 0
     rising_edges.append(cocotb.utils.get_sim_time(units="ns"))
-    while dut.uio_out[0].value == 1:
+    while dut.uio_out.value == 1:
         await ClockCycles(dut.clk, 1)
         time_cyclec_count += 1
         if time_cyclec_count > time_out:
             raise TimeoutError("Time out waiting for falling edge")
     time_cyclec_count = 0
     falling_edges.append(cocotb.utils.get_sim_time(units="ns"))
-    while dut.uio_out[0].value == 0:
+    while dut.uio_out.value == 0:
         await ClockCycles(dut.clk, 1)
         time_cyclec_count += 1
         if time_cyclec_count > time_out:
@@ -258,7 +258,7 @@ async def test_pwm_duty(dut):
     dut._log.info("Write transaction, address 0x04, data 0x00")
     ui_in_val = await send_spi_transaction(dut, 1, 0x04, 0x00)  # Write transaction
     await ClockCycles(dut.clk, 10000)
-    assert dut.uio_out[0].value == 0, f"Expected 0% duty cycle, got {dut.uio_out[0].value}"
+    assert dut.uio_out.value == 0, f"Expected 0% duty cycle, got {dut.uio_out[0].value}"
     dut._log.info("0 percent duty cycle passed successfully")
 
     #handling edge_case of 100 percent
@@ -266,7 +266,7 @@ async def test_pwm_duty(dut):
     dut._log.info("Write transaction, address 0x00, data 0x02")
     ui_in_val = await send_spi_transaction(dut, 1, 0x00, 0xFF)  # Write transaction
     await ClockCycles(dut.clk, 1000)
-    assert dut.uio_out[0].value == 1, f"Expected 100% duty cycle, got {dut.uio_out[0].value}"
+    assert dut.uio_out.value == 1, f"Expected 100% duty cycle, got {dut.uio_out[0].value}"
     dut._log.info("100 percent duty cycle passed successfully")
 
     dut._log.info("PWM Duty Cycle test completed successfully")
