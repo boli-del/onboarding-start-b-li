@@ -158,10 +158,15 @@ async def test_pwm_freq(dut):
 
     dut._log.info("Reset")
     dut.rst_n.value = 0
+    dut.ena.value = 1
+    ncs = 1
+    bit = 0
+    sclk = 0
+    dut.ui_in.value = ui_in_logicarray(ncs, bit, sclk)
     await ClockCycles(dut.clk, 5) #waiting for stable state
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 5) #waiting for stable state
-    time_out = 10000000000000 #for handling timeout errors
+    time_out = 100000 #for handling timeout errors
     time_cyclec_count = 0
     #50% duty cycle
     dut._log.info("Testing at 50 percent duty cycle")
@@ -210,6 +215,11 @@ async def test_pwm_duty(dut):
 
     dut._log.info("Reset")
     dut.rst_n.value = 0
+    dut.ena.value = 1
+    ncs = 1
+    bit = 0
+    sclk = 0
+    dut.ui_in.value = ui_in_logicarray(ncs, bit, sclk)
     await ClockCycles(dut.clk, 5) #waiting for stable state
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 5) #waiting for stable state
@@ -223,7 +233,7 @@ async def test_pwm_duty(dut):
     await ClockCycles(dut.clk, 10000) #waiting for stable state
     rising_edges = []
     falling_edges = []
-    time_out = 10000000000000 #for handling timeout errors
+    time_out = 100000 #for handling timeout errors
     time_cyclec_count = 0
 
     #detect rising and falling edges
