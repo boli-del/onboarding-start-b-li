@@ -12,10 +12,10 @@ module spi_peripheral (
     output reg  [7:0] en_reg_pwm_15_8,
     output reg  [7:0] pwm_duty_cycle
 );
-output reg  [15:0] message;
-output reg  [4:0]bit_cnt;
-output reg text_received = 0;
-output reg text_processed = 0;
+reg  [15:0] message;
+reg  [4:0]bit_cnt;
+reg text_received = 0;
+reg text_processed = 0;
 
 wire pos_sclk = sclk_sync2 & ~sclk_sync1;
 reg write_flag;
