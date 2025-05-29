@@ -3,10 +3,11 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge
+from cocotb.triggers import RisingEdge, FallingEdge, with_timeout
 from cocotb.triggers import ClockCycles
 from cocotb.types import Logic
 from cocotb.types import LogicArray
+from cocotb.result import SimTimeoutError
 
 async def await_half_sclk(dut):
     """Wait for the SCLK signal to go high or low."""
@@ -177,26 +178,11 @@ async def test_pwm_freq(dut):
     await ClockCycles(dut.clk, 10000) #waiting for stable state
     rising_edges = []
     falling_edges = []
-    while dut.uio_out[0].value == 0:
-        await ClockCycles(dut.clk, 1)
-        time_cyclec_count += 1
-        if time_cyclec_count > time_out:
-            raise TimeoutError("Time out waiting for rising edge")
-    time_cyclec_count = 0
+    await with_timeout(RisingEdge(dut.uio_out[0]), 10000, 'us')
     rising_edges.append(cocotb.utils.get_sim_time(units="ns"))
-    while dut.uio_out[0].value == 1:
-        await ClockCycles(dut.clk, 1)
-        time_cyclec_count += 1
-        if time_cyclec_count > time_out:
-            raise TimeoutError("Time out waiting for falling edge")
-    time_cyclec_count = 0
+    await with_timeout(FallingEdge(dut.uio_out[0]), 10000, 'us')
     falling_edges.append(cocotb.utils.get_sim_time(units="ns"))
-    while dut.uio_out[0].value == 0:
-        await ClockCycles(dut.clk, 1)
-        time_cyclec_count += 1
-        if time_cyclec_count > time_out:
-            raise TimeoutError("Time out waiting for rising edge")
-    time_cyclec_count = 0
+    await with_timeout(RisingEdge(dut.uio_out[0]), 10000, 'us')
     rising_edges.append(cocotb.utils.get_sim_time(units="ns"))
 
     period = rising_edges[1] - rising_edges[0]
