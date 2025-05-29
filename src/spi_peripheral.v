@@ -1,25 +1,28 @@
 `default_nettype none
 
 module spi_peripheral (
-    input wire ncs;
+    input wire nCS;
     input wire clk;
     input wire rst_n;
-    input wire sclk;
-    input wire copi;
+    input wire SCLK;
+    input wire COPI;
     output reg  [7:0] en_reg_out_7_0;
     output reg  [7:0] en_reg_out_15_8;
     output reg  [7:0] en_reg_pwm_7_0;
     output reg  [7:0] en_reg_pwm_15_8;
     output reg  [7:0] pwm_duty_cycle;
-    output reg message[15:0];
-    output reg bit_cnt[4:0];
+    output reg  [15:0] message;
+    output reg  [4:0]bit_cnt;
     output reg text_received = 0;
     output reg text_processed = 0;
 
-    wire pos_sclk = ~ncs_sync2 & ncs_sync1;
-    reg ncs_sync1, ncs_sync2;
-    reg copi_sync1, copi_sync2;
-    wire pos_sclk = ~sclk_sync2 & sclk_sync1;
+    wire pos_sclk = sclk_sync2 & ~sclk_sync1;
+    reg ncs_sync1;
+    reg ncs_sync2;
+    reg copi_sync1;
+    reg copi_sync2;
+    reg sclk_sync1;
+    reg sclk_sync2;
 
 
     always @(posedge clk or negedge rst_n) begin
@@ -28,17 +31,23 @@ module spi_peripheral (
             text_received<= 0;
             ncs_sync1 <= 1'b1;
             ncs_sync2 <= 1'b1;
-            copi_sync1 <= 1'b0, copi_sync2 <= 1'b0;
+            copi_sync1 <= 1'b0;
+            copi_sync2 <= 1'b0;
+            sclk_sync1 <= 0;
+            sclk_sync2 <= 0;
             en_reg_out_7_0 <= 0;
             en_reg_out_15_8 <= 0;
             en_reg_pwm_15_8 <= 0;
             en_reg_pwm_7_0 <= 0;
         end
         else begin
-                ncs_sync1 <= ncs;
+                ncs_sync1 <= nCS;
                 ncs_sync2 <= ncs_sync1;
-                copi_sync1 <= copi;
+                copi_sync1 <= COPI;
                 copi_sync2 <= copi_sync1;
+                sclk_sync1 <= SCLK;
+                sclk_sync2 <= sclk_sync1;
+
                     
             if (ncs_sync2 == 1'b0) begin
                 if (pos_sclk && bit_cnt != 16) begin 
@@ -48,7 +57,7 @@ module spi_peripheral (
                     bit_cnt <= bit_cnt + 1;
                 end
             end
-            and else begin 
+            else begin 
                 if (bit_cnt == 16) begin //negedge is going to be ncs_sync2 = 1, ncs_sync = 0
                     //set the text received after the falling edge of the ncs which signals the end of the message
                     text_received <= 1'b1;
