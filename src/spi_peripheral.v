@@ -18,9 +18,9 @@ output reg text_received = 0;
 output reg text_processed = 0;
 
 wire pos_sclk = sclk_sync2 & ~sclk_sync1;
-wire write_flag;
-wire [6:0] addr;
-wire [7:0] data
+reg write_flag;
+reg [6:0] addr;
+reg [7:0] data;
 reg ncs_sync1;
 reg ncs_sync2;
 reg copi_sync1;
@@ -78,8 +78,9 @@ always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin 
         //clear the text processed
         text_processed <= 1'b0;
-        
-    
+        message  <= 16'd0;
+        bit_cnt  <= 5'd0;
+        text_received <= 1'b0;
     end else if (text_received == 1'b1 && text_processed == 1'b0) begin
         //process the text only if the text is received and not processed
         write_flag <= message[15];
