@@ -84,7 +84,7 @@ always @(posedge clk or negedge rst_n) begin
         //process the text only if the text is received and not processed
         if (message[15]) begin
             if (message[14:8] < 5) begin
-                case (addr)
+                case (message[14:8])
                     7'h00: en_reg_out_7_0 <= message[7:0];  // shift left, LSB <- data_in
                     7'h01: en_reg_out_15_8 <= message[7:0];
                     7'h02: en_reg_pwm_7_0 <= message[7:0];
