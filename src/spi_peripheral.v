@@ -18,9 +18,6 @@ reg text_received = 0;
 reg text_processed = 0;
 
 wire pos_sclk = sclk_sync2 & ~sclk_sync1;
-reg write_flag;
-reg [6:0] addr;
-reg [7:0] data;
 reg ncs_sync1;
 reg ncs_sync2;
 reg copi_sync1;
@@ -43,6 +40,8 @@ always @(posedge clk or negedge rst_n) begin
         en_reg_out_15_8 <= 0;
         en_reg_pwm_15_8 <= 0;
         en_reg_pwm_7_0 <= 0;
+        pwm_duty_cycle <= 0;
+
     end
     else begin
             ncs_sync1 <= nCS;
@@ -83,17 +82,14 @@ always @(posedge clk or negedge rst_n) begin
         text_received <= 1'b0;
     end else if (text_received == 1'b1 && text_processed == 1'b0) begin
         //process the text only if the text is received and not processed
-        write_flag <= message[15];
-        addr <= message[14:8];
-        data <= message[7:0];
-        if (write_flag) begin
-            if (addr < 5) begin
+        if (message[15]) begin
+            if (message[14:8] < 5) begin
                 case (addr)
-                    7'h00: en_reg_out_7_0 <= data;  // shift left, LSB <- data_in
-                    7'h01: en_reg_out_15_8 <= data;
-                    7'h02: en_reg_pwm_7_0 <= data;
-                    7'h03: en_reg_pwm_15_8 <= data;
-                    7'h04: pwm_duty_cycle <= data;
+                    7'h00: en_reg_out_7_0 <= message[7:0];  // shift left, LSB <- data_in
+                    7'h01: en_reg_out_15_8 <= message[7:0];
+                    7'h02: en_reg_pwm_7_0 <= message[7:0];
+                    7'h03: en_reg_pwm_15_8 <= message[7:0];
+                    7'h04: pwm_duty_cycle <= message[7:0];
                 endcase
             end
         end
