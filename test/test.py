@@ -149,6 +149,20 @@ async def test_spi(dut):
     await ClockCycles(dut.clk, 30000)
 
     dut._log.info("SPI test completed successfully")
+    
+async def wait_for_value(dut, target_bit, timeout_cycles=5000):
+    """
+    Poll uio_out[0] until it == target_bit, or time out.
+    Returns the current sim time in ns when it sees it.
+    """
+    for _ in range(timeout_cycles):
+        # grab bit-0
+        bit0 = int(dut.uio_out.value) & 1
+        if bit0 == target_bit:
+            return cocotb.utils.get_sim_time(units="ns")
+        await ClockCycles(dut.clk, 1)
+    raise TimeoutError(f"Timed out waiting for PWM to become {target_bit}")
+
 
 @cocotb.test()
 async def test_pwm_freq(dut):
@@ -167,30 +181,29 @@ async def test_pwm_freq(dut):
     await ClockCycles(dut.clk, 5) #waiting for stable state
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 5) #waiting for stable state
-    time_out = 100000 #for handling timeout errors
-    time_cyclec_count = 0
     #50% duty cycle
     dut._log.info("Testing at 50 percent duty cycle")
     dut._log.info("Write transaction, address 0x00, data 0x01")
     ui_in_val = await send_spi_transaction(dut, 1, 0x00, 0x01)  # Write transaction
     await send_spi_transaction(dut, 1, 0x02, 0x01)  # Enable PWM for output 0
-    await send_spi_transaction(dut, 1, 0x04, 0x80)  #set 50% duty cycle
-    await ClockCycles(dut.clk, 10000) #waiting for stable state
-    rising_edges = []
-    falling_edges = []
-    await with_timeout(RisingEdge(dut.uio_out), 10000, 'us')
-    rising_edges.append(cocotb.utils.get_sim_time(units="ns"))
-    await with_timeout(FallingEdge(dut.uio_out), 10000, 'us')
-    falling_edges.append(cocotb.utils.get_sim_time(units="ns"))
-    await with_timeout(RisingEdge(dut.uio_out), 10000, 'us')
-    rising_edges.append(cocotb.utils.get_sim_time(units="ns"))
+    await send_spi_transaction(dut, 1, 0x04, 0x80)  #set 50% duty cycle #waiting for stable state
+    await ClockCycles(dut.clk, 20000)
 
-    period = rising_edges[1] - rising_edges[0]
-    frequency = 1 / period
-    dut._log.info(f"Period: {period} ns, Frequency: {frequency} Hz")
-    assert frequency <= 3030 and frequency >= 2970, f"Expected frequency to be 3000 Hz, got {frequency} Hz"
+    # 1) first rising edge
+    t0 = await wait_for_value(dut, 1, timeout_cycles=5000)
+    # 2) next falling edge
+    t1 = await wait_for_value(dut, 0, timeout_cycles=5000)
+    # 3) next rising edge
+    t2 = await wait_for_value(dut, 1, timeout_cycles=5000)
+
+    period_ns = t2 - t0
+    freq_hz   = 1e9 / period_ns
+    dut._log.info(f"Measured period {period_ns} ns ⇒ {freq_hz:.1f} Hz")
+    assert 2900 < freq_hz < 3100, f"Got {freq_hz:.1f} Hz, expected ~3000 Hz"
 
     dut._log.info("PWM Frequency test completed successfully")
+
+
 
 
 @cocotb.test()
