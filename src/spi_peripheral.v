@@ -11,6 +11,7 @@ module spi_peripheral (
     output reg  [7:0] en_reg_pwm_7_0;
     output reg  [7:0] en_reg_pwm_15_8;
     output reg  [7:0] pwm_duty_cycle;
+);
     output reg  [15:0] message;
     output reg  [4:0]bit_cnt;
     output reg text_received = 0;
@@ -101,7 +102,5 @@ module spi_peripheral (
         end
 
     end
-        
-);
 endmodule
 
