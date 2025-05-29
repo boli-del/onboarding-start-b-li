@@ -30,6 +30,7 @@ always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         //clear the text received for everything, including register
         text_received<= 0;
+        text_processed <= 1'b0;
         ncs_sync1 <= 1'b1;
         ncs_sync2 <= 1'b1;
         copi_sync1 <= 1'b0;
@@ -37,7 +38,11 @@ always @(posedge clk or negedge rst_n) begin
         sclk_sync1 <= 0;
         sclk_sync2 <= 0;
         bit_cnt  <= 5'd0;
-
+        en_reg_out_7_0 <= 8'b0;
+        en_reg_out_15_8 <= 8'b0;
+        en_reg_pwm_15_8 <= 8'b0;
+        en_reg_pwm_7_0 <= 8'b0;
+        pwm_duty_cycle <= 8'b0;
     end
     else begin
             ncs_sync1 <= nCS;
@@ -73,11 +78,9 @@ always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin 
         //clear the text processed
         text_processed <= 1'b0;
-        en_reg_out_7_0 <= 8'b0;
-        en_reg_out_15_8 <= 8'b0;
-        en_reg_pwm_15_8 <= 8'b0;
-        en_reg_pwm_7_0 <= 8'b0;
-        pwm_duty_cycle <= 8'b0;
+        message  <= 16'd0;
+        bit_cnt  <= 5'd0;
+        text_received <= 1'b0;
     end else if (text_received == 1'b1 && text_processed == 1'b0) begin
         //process the text only if the text is received and not processed
         if (message[15]) begin
