@@ -29,7 +29,7 @@ reg sclk_sync2;
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         //clear the text received for everything, including register
-        text_received<= 0;
+        text_received <= 0;
         text_processed <= 1'b0;
         ncs_sync1 <= 1'b1;
         ncs_sync2 <= 1'b1;
@@ -37,21 +37,20 @@ always @(posedge clk or negedge rst_n) begin
         copi_sync2 <= 1'b0;
         sclk_sync1 <= 0;
         sclk_sync2 <= 0;
-        bit_cnt  <= 5'd0;
-        message  <= 16'd0;
+        bit_cnt <= 5'd0;
+        message <= 16'd0;
     end
     else begin
-            ncs_sync1 <= nCS;
-            ncs_sync2 <= ncs_sync1;
-            copi_sync1 <= COPI;
-            copi_sync2 <= copi_sync1;
-            sclk_sync1 <= SCLK;
-            sclk_sync2 <= sclk_sync1;
+        ncs_sync1 <= nCS;
+        ncs_sync2 <= ncs_sync1;
+        copi_sync1 <= COPI;
+        copi_sync2 <= copi_sync1;
+        sclk_sync1 <= SCLK;
+        sclk_sync2 <= sclk_sync1;
 
-                
         if (ncs_sync2 == 1'b0) begin
             if (pos_sclk && bit_cnt != 16) begin 
-                //shift the message
+                //shift the message left and add new bit at LSB for SPI Mode 0
                 message <= {message[14:0], copi_sync2};
                 //increment the bit count
                 bit_cnt <= bit_cnt + 1;
@@ -61,6 +60,7 @@ always @(posedge clk or negedge rst_n) begin
             if (bit_cnt == 16) begin //negedge is going to be ncs_sync2 = 1, ncs_sync = 0
                 //set the text received after the falling edge of the ncs which signals the end of the message
                 text_received <= 1'b1;
+                bit_cnt <= 5'd0;  // Reset bit counter after receiving full message
             end else if (text_processed == 1'b1) begin
                 //clear the text received since it is processed
                 text_received <= 1'b0;
