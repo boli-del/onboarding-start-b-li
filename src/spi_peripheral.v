@@ -30,7 +30,6 @@ always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         //clear the text received for everything, including register
         text_received <= 0;
-        text_processed <= 1'b0;
         ncs_sync1 <= 1'b1;
         ncs_sync2 <= 1'b1;
         copi_sync1 <= 1'b0;
