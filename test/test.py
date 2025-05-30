@@ -240,7 +240,7 @@ async def test_pwm_duty(dut):
     high_time = t1-t0
     duty_cycle = (high_time/period)*100
     dut._log.info(f"Period: {period} ns, High time: {high_time} ns, Duty Cycle: {duty_cycle}%")
-    assert high_time <= 55 and high_time >= 45, f"Expected duty cycle to be 50 %, got {high_time} %"
+    assert duty_cycle <= 55 and duty_cycle >= 45, f"Expected duty cycle to be 50 %, got {high_time} %"
     dut._log.info("50 percent duty cycle passed successfully")
 
     #handling edge_case of 0 percent
