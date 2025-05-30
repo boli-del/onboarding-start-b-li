@@ -236,7 +236,7 @@ async def test_pwm_duty(dut):
     t1 = await wait_for_value(dut, 0, timeout_cycles=5000)
     t2 = await wait_for_value(dut, 1, timeout_cycles=5000)
     #calculate period, hightimes, and frequency
-    period = t2 - t1
+    period = t2 - t0
     high_time = t1-t0
     duty_cycle = (high_time/period)*100
     dut._log.info(f"Period: {period} ns, High time: {high_time} ns, Duty Cycle: {duty_cycle}%")
