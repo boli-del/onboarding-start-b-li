@@ -254,8 +254,8 @@ async def test_pwm_duty(dut):
     #handling edge_case of 100 percent
     dut._log.info("Testing 100 percent duty cycle")
     dut._log.info("Write transaction, address 0x00, data 0x02")
-    ui_in_val = await send_spi_transaction(dut, 1, 0x00, 0xFF)  # Write transaction
-    await ClockCycles(dut.clk, 1000)
+    ui_in_val = await send_spi_transaction(dut, 1, 0x04, 0xFF)  # Write transaction
+    await ClockCycles(dut.clk, 10000)
     assert dut.uo_out.value == 1, f"Expected 100% duty cycle, got {dut.uio_out[0].value}"
     dut._log.info("100 percent duty cycle passed successfully")
 
