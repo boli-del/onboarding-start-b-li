@@ -157,7 +157,7 @@ async def wait_for_value(dut, target_bit, timeout_cycles=5000):
     """
     for _ in range(timeout_cycles):
         # grab bit-0
-        bit0 = int(dut.uio_out.value) & 1
+        bit0 = int(dut.uo_out.value) & 1
         if bit0 == target_bit:
             return cocotb.utils.get_sim_time(units="ns")
         await ClockCycles(dut.clk, 1)
